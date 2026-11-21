@@ -3,6 +3,7 @@
 //! v1 包装 IndexMap<String, TModel>）
 
 use crate::error::Result;
+use crate::template::bean_getter::bean_getter_fallback;
 use crate::template::{TModel, TemplateHashModel, TemplateHashModelEx};
 use indexmap::IndexMap;
 
@@ -20,7 +21,10 @@ impl DefaultMapAdapter {
 
 impl TemplateHashModel for DefaultMapAdapter {
     fn get(&self, key: &str) -> Result<Option<TModel>> {
-        Ok(self.map.get(key).cloned())
+        if let Some(v) = self.map.get(key) {
+            return Ok(Some(v.clone()));
+        }
+        Ok(bean_getter_fallback(|prop| self.map.get(prop).cloned(), key))
     }
 
     fn is_empty(&self) -> Result<bool> {

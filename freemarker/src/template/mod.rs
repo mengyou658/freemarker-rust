@@ -3,6 +3,7 @@
 
 mod adapter_template_model;
 mod attempt_exception_reporter;
+mod bean_getter;
 pub(crate) mod configuration;
 mod default_array_adapter;
 mod default_enumeration_adapter;
