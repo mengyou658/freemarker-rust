@@ -574,6 +574,13 @@ fn nested_switch_attempt_break() {
     };
     assert!(matches!(body[0].kind, ElementKind::Break));
     assert!(matches!(body[1].kind, ElementKind::Continue));
+    // codegen FTLs use `<#break />` (space before /); Java FreeMarker accepts it
+    let t = parse_ok("<#list xs as x><#break /><#continue /></#list>");
+    let ElementKind::List { body, .. } = &t.root[0].kind else {
+        panic!("expected List");
+    };
+    assert!(matches!(body[0].kind, ElementKind::Break));
+    assert!(matches!(body[1].kind, ElementKind::Continue));
 }
 
 #[test]

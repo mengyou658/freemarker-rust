@@ -303,9 +303,22 @@ impl<'a> Parser<'a> {
                             let direct_close = matches!(after, Some('>') | Some(']'));
                             let self_close = after == Some('/');
                             let malformed = if whitespace {
-                                // 无参家族带参数 → token 不匹配（`<#compress x>`）；
-                                // else 特例：`<#else x>` 走 ELSE_IF（BLANK）
-                                !PARAM_DIRECTIVES.contains(&lname.as_str()) && lname != "else"
+                                // 有参指令：空白后跟参数（`<#if x>`）；else 可走 ELSE_IF。
+                                // 无参指令：Java 允许 `<#break />` / `<#break >`（空白再闭合）。
+                                if PARAM_DIRECTIVES.contains(&lname.as_str()) || lname == "else" {
+                                    false
+                                } else {
+                                    self.lexer.skip_ws();
+                                    let a = self.lexer.peek();
+                                    let ok_close = matches!(a, Some('>') | Some(']'));
+                                    let ok_self = a == Some('/')
+                                        && matches!(
+                                            self.lexer.peek_at(1),
+                                            Some('>') | Some(']')
+                                        )
+                                        && SELF_CLOSE_DIRECTIVES.contains(&lname.as_str());
+                                    !(ok_close || ok_self)
+                                }
                             } else if direct_close {
                                 // BLANK-only 指令无空白直接闭合 → 不匹配
                                 !NOPARAM_DIRECTIVES.contains(&lname.as_str())
