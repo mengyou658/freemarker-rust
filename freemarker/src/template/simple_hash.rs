@@ -45,19 +45,11 @@ mod tests {
     use crate::template::{Configuration, DynValue, ObjectWrapper, SimpleObjectWrapper};
     use std::sync::Arc;
 
-    #[test]
-    fn get_name_method_on_hash() {
+    fn render(src: &str, root: DynValue) -> String {
         let mut c = Configuration::new();
         let loader = Arc::new(StringLoader::default());
         c.template_loader = loader.clone();
-        loader.put("t.ftl", "${sceneEnum.getName()}-${sceneEnum.basePackage}");
-        let root = DynValue::Map(vec![(
-            "sceneEnum".into(),
-            DynValue::Map(vec![
-                ("name".into(), DynValue::Str("ADMIN".into())),
-                ("basePackage".into(), DynValue::Str("admin".into())),
-            ]),
-        )]);
+        loader.put("t.ftl", src);
         let t = c.get_template("t.ftl").unwrap();
         let root_model = SimpleObjectWrapper
             .wrap(&root)
@@ -65,6 +57,36 @@ mod tests {
             .unwrap_or_else(TModel::nothing);
         let mut out = Vec::new();
         t.process(root_model, &mut out).unwrap();
-        assert_eq!(String::from_utf8(out).unwrap(), "ADMIN-admin");
+        String::from_utf8(out).unwrap()
+    }
+
+    #[test]
+    fn get_name_method_on_hash() {
+        let root = DynValue::Map(vec![(
+            "sceneEnum".into(),
+            DynValue::Map(vec![
+                ("name".into(), DynValue::Str("ADMIN".into())),
+                ("basePackage".into(), DynValue::Str("admin".into())),
+            ]),
+        )]);
+        assert_eq!(
+            render(
+                "${sceneEnum.getName()}-${sceneEnum.basePackage}",
+                root
+            ),
+            "ADMIN-admin"
+        );
+    }
+
+    #[test]
+    fn missing_getter_returns_null_method() {
+        let root = DynValue::Map(vec![(
+            "c".into(),
+            DynValue::Map(vec![("columnName".into(), DynValue::Str("id".into()))]),
+        )]);
+        assert_eq!(
+            render("<#if c.getDictDatas()??>yes<#else>no</#if>", root),
+            "no"
+        );
     }
 }

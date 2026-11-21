@@ -50,13 +50,15 @@ impl TemplateMethodModelEx for ConstantReturnMethod {
     }
 }
 
-/// If `key` is absent but matches getXxx/isXxx and property exists, wrap as method.
+/// If `key` matches getXxx/isXxx, wrap the property (or nothing) as a zero-arg method.
+/// Missing properties still yield a method returning nothing — matches Java bean getters
+/// that exist but return null (`c.getDictDatas()??` must not fail as "not a method").
 pub(crate) fn bean_getter_fallback(
     get_prop: impl FnOnce(&str) -> Option<TModel>,
     key: &str,
 ) -> Option<TModel> {
     let prop = bean_property_from_accessor(key)?;
-    let v = get_prop(&prop)?;
+    let v = get_prop(&prop).unwrap_or_else(TModel::nothing);
     Some(TModel::from_method(ConstantReturnMethod(v)))
 }
 
